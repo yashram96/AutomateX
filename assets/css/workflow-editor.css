@@ -1,0 +1,59 @@
+/* Workflow Editor Styles */
+.workflow-node {
+  @apply p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-4;
+  position: absolute;
+  user-select: none;
+  min-width: 200px;
+}
+
+.workflow-node:hover {
+  @apply border-primary-500 shadow-md;
+}
+
+/* Drag and Drop Styles */
+[draggable] {
+  cursor: move;
+  -webkit-user-drag: element;
+}
+
+.drag-over {
+  @apply border-primary-500 !important;
+  background-color: rgba(14, 165, 233, 0.05) !important;
+}
+
+.drag-over * {
+  pointer-events: none;
+}
+
+/* Dragging Component Styles */
+.dragging {
+  opacity: 0.5;
+  cursor: move;
+}
+
+/* Grid Background */
+.workflow-grid {
+  background-size: 20px 20px;
+  background-image: 
+    linear-gradient(to right, rgba(156, 163, 175, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(156, 163, 175, 0.1) 1px, transparent 1px);
+}
+
+.dark .workflow-grid {
+  background-image: 
+    linear-gradient(to right, rgba(75, 85, 99, 0.1) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(75, 85, 99, 0.1) 1px, transparent 1px);
+}
+
+/* Workflow Canvas */
+.workflow-canvas {
+  min-width: 2000px;
+  min-height: 2000px;
+  transition: transform 0.1s ease-out;
+}
+
+/* Node Styles */
+.workflow-node {
+  cursor: move;
+  transition: transform 0.1s ease-out;
+}
