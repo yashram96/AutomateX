@@ -32,175 +32,92 @@
           </div>
 
           <!-- Dynamic Configuration Fields -->
-          <template v-if="component?.data?.type === 'source'">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Source Type
-                </label>
-                <select
-                  v-model="config.source_type"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-                >
-                  <option value="postgresql">PostgreSQL</option>
-                  <option value="mysql">MySQL</option>
-                  <option value="api">REST API</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Query/Endpoint
-                </label>
-                <textarea
-                  v-model="config.query"
-                  rows="3"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-                ></textarea>
-              </div>
-            </div>
-          </template>
+          <div v-if="component?.data?.config?.inputs" class="space-y-4">
+            <div v-for="input in component.data.config.inputs" :key="input.name" class="space-y-2">
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                {{ input.name }}
+                <span v-if="input.required" class="text-red-500">*</span>
+              </label>
+              
+              <!-- Text Input -->
+              <input
+                v-if="input.type === 'text'"
+                type="text"
+                v-model="config[input.name]"
+                :placeholder="input.description"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                :required="input.required"
+              />
 
-          <template v-if="component?.data?.type === 'processor'">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Operations
-                </label>
-                <div class="mt-2 space-y-2">
-                  <label class="inline-flex items-center">
-                    <input type="checkbox" v-model="config.operations" value="remove_nulls" class="rounded">
-                    <span class="ml-2">Remove Nulls</span>
-                  </label>
-                  <label class="inline-flex items-center">
-                    <input type="checkbox" v-model="config.operations" value="standardize_dates" class="rounded">
-                    <span class="ml-2">Standardize Dates</span>
-                  </label>
-                </div>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Output Format
-                </label>
-                <select
-                  v-model="config.output_format"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-                >
-                  <option value="json">JSON</option>
-                  <option value="csv">CSV</option>
-                  <option value="xml">XML</option>
-                </select>
-              </div>
-            </div>
-          </template>
+              <!-- Number Input -->
+              <input
+                v-else-if="input.type === 'number'"
+                type="number"
+                v-model.number="config[input.name]"
+                :placeholder="input.description"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                :required="input.required"
+              />
 
-          <template v-if="component?.data?.type === 'action'">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Action Type
-                </label>
-                <select
-                  v-model="config.action_type"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-                >
-                  <option value="send_email">Send Email</option>
-                  <option value="send_slack">Send Slack Message</option>
-                  <option value="http_request">HTTP Request</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Recipients
-                </label>
-                <input
-                  type="text"
-                  v-model="config.recipients"
-                  placeholder="Comma-separated emails or channels"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-                />
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Template ID
-                </label>
-                <input
-                  type="text"
-                  v-model="config.template"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-                />
-              </div>
-            </div>
-          </template>
+              <!-- Dropdown Input -->
+              <select
+                v-else-if="input.type === 'dropdown' && input.options"
+                v-model="config[input.name]"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                :required="input.required"
+              >
+                <option value="">Select {{ input.name }}</option>
+                <option v-for="option in input.options" :key="option" :value="option">
+                  {{ option }}
+                </option>
+              </select>
 
-          <template v-if="component?.data?.type === 'trigger'">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Event Source
-                </label>
-                <select
-                  v-model="config.source"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-                >
-                  <option value="google_drive">Google Drive</option>
-                  <option value="dropbox">Dropbox</option>
-                  <option value="webhook">Webhook</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Watch Folder
-                </label>
+              <!-- Boolean Input -->
+              <div v-else-if="input.type === 'boolean'" class="flex items-center">
                 <input
-                  type="text"
-                  v-model="config.watch_folder"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+                  type="checkbox"
+                  v-model="config[input.name]"
+                  class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500"
                 />
+                <span class="ml-2 text-sm text-gray-600 dark:text-gray-400">{{ input.description }}</span>
               </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  File Types
-                </label>
-                <input
-                  type="text"
-                  v-model="config.file_types"
-                  placeholder="*.csv, *.xlsx"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-                />
-              </div>
-            </div>
-          </template>
 
-          <template v-if="component?.data?.type === 'ai'">
-            <div class="space-y-4">
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  AI Model
-                </label>
-                <select
-                  v-model="config.model"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-                >
-                  <option value="gpt-4">GPT-4</option>
-                  <option value="bert">BERT</option>
-                  <option value="custom">Custom Model</option>
-                </select>
-              </div>
-              <div>
-                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
-                  Task Type
-                </label>
-                <select
-                  v-model="config.task"
-                  class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
-                >
-                  <option value="analyze_sentiment">Sentiment Analysis</option>
-                  <option value="classify_text">Text Classification</option>
-                  <option value="extract_entities">Entity Extraction</option>
-                </select>
-              </div>
+              <!-- JSON Input -->
+              <textarea
+                v-else-if="input.type === 'json'"
+                v-model="config[input.name]"
+                rows="3"
+                :placeholder="input.description"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700 shadow-sm focus:border-primary-500 focus:ring-primary-500"
+                :required="input.required"
+              ></textarea>
+
+              <!-- Help Text -->
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ input.description }}
+              </p>
             </div>
-          </template>
+          </div>
+
+          <!-- Authentication Configuration -->
+          <div v-if="component?.data?.config?.auth_method" class="space-y-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                Authentication Method
+              </label>
+              <select
+                v-model="config.auth_method"
+                class="mt-1 block w-full rounded-md border-gray-300 dark:border-gray-600 dark:bg-gray-700"
+              >
+                <option v-for="option in component.data.config.auth_method.options" :key="option" :value="option">
+                  {{ option }}
+                </option>
+              </select>
+              <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                {{ component.data.config.auth_method.description }}
+              </p>
+            </div>
+          </div>
 
           <!-- Save/Cancel Buttons -->
           <div class="mt-6 flex justify-end space-x-3">
@@ -236,35 +153,25 @@ const props = defineProps<{
 
 const emit = defineEmits(['close', 'update'])
 
-const config = ref({
-  label: '',
-  // Source Node
-  source_type: 'postgresql',
-  query: '',
-  connection_string: '',
-  // Processor Node
-  operations: [],
-  output_format: 'json',
-  // Action Node
-  action_type: 'send_email',
-  channel: 'email',
-  recipients: '',
-  template: '',
-  // Trigger Node
-  source: 'google_drive',
-  watch_folder: '',
-  file_types: '',
-  // AI Node
-  model: 'gpt-4',
-  task: 'analyze_sentiment',
-  parameters: {},
-})
+const config = ref<any>({})
 
 watch(() => props.component, () => {
-  if (props.component?.data?.config) {
-    config.value = { ...config.value, ...props.component.data.config }
+  if (props.component?.data) {
+    // Initialize config with existing values
+    config.value = {
+      label: props.component.data.label,
+      ...props.component.data.config
+    }
+
+    // Initialize input fields from component configuration
+    if (props.component.data.config?.inputs) {
+      props.component.data.config.inputs.forEach((input: any) => {
+        if (!(input.name in config.value)) {
+          config.value[input.name] = ''
+        }
+      })
+    }
   }
-  config.value.label = props.component?.data?.label || ''
 }, { immediate: true })
 
 const closeModal = () => {
