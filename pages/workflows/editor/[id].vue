@@ -121,6 +121,7 @@
                 </div>
                 <input
                   type="search"
+                  v-model="searchQuery"
                   id="search-components"
                   class="block w-full rounded-md border-0 py-1.5 pl-10 text-gray-900 dark:text-white dark:bg-gray-700 shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-600 sm:text-sm sm:leading-6"
                   placeholder="Search components"
@@ -128,19 +129,27 @@
               </div>
             </div>
 
-            <div class="space-y-4">
-              <div v-for="category in componentCategories" :key="category.name">
-                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ category.name }}</h3>
+            <div v-if="isLoading" class="flex justify-center py-4">
+              <div class="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+            </div>
+
+            <div v-else-if="error" class="text-red-500 text-sm text-center py-4">
+              {{ error }}
+            </div>
+
+            <div v-else class="space-y-4">
+              <div v-for="(components, category) in groupedComponents" :key="category">
+                <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ category }}</h3>
                 <div class="mt-2 grid grid-cols-2 gap-2">
                   <div
-                    v-for="component in category.components"
-                    :key="component.name"
+                    v-for="component in filterComponents(components)"
+                    :key="component.id"
                     class="group relative flex items-center space-x-3 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 px-3 py-2 shadow-sm hover:border-primary-500 focus-within:ring-2 focus-within:ring-primary-500 focus-within:ring-offset-2"
                     draggable
                     @dragstart="onDragStart($event, component)"
                   >
                     <div class="flex-shrink-0">
-                      <component :is="component.icon" class="h-5 w-5 text-gray-400 group-hover:text-primary-500" />
+                      <component :is="getIcon(component.icon)" class="h-5 w-5 text-gray-400 group-hover:text-primary-500" />
                     </div>
                     <div class="min-w-0 flex-1">
                       <span class="absolute inset-0" aria-hidden="true" />
@@ -193,6 +202,7 @@ import {
   EnvelopeIcon as MailIcon,
   ClockIcon as TimeIcon,
 } from '@heroicons/vue/24/outline'
+import { useComponents } from '~/composables/useComponents'
 
 const route = useRoute()
 const router = useRouter()
@@ -202,6 +212,42 @@ const { viewport } = useVueFlow({
   minZoom: 0.2,
   maxZoom: 4,
 })
+
+// Use the components composable
+const { components, groupedComponents, isLoading, error } = useComponents()
+
+// Add search functionality
+const searchQuery = ref('')
+
+const filterComponents = (components: any[]) => {
+  if (!searchQuery.value) return components
+  
+  const query = searchQuery.value.toLowerCase()
+  return components.filter(component => 
+    component.name.toLowerCase().includes(query) ||
+    component.description.toLowerCase().includes(query) ||
+    component.tags.some((tag: string) => tag.toLowerCase().includes(query))
+  )
+}
+
+// Icon mapping helper
+const getIcon = (iconName: string) => {
+  const icons: Record<string, any> = {
+    'BoltIcon': BoltIcon,
+    'ChatBubbleLeftRightIcon': ChatBubbleLeftRightIcon,
+    'DocumentTextIcon': DocumentTextIcon,
+    'ArrowsPointingInIcon': ArrowsPointingInIcon,
+    'ArrowsPointingOutIcon': ArrowsPointingOutIcon,
+    'CloudIcon': CloudIcon,
+    'CircleStackIcon': CircleStackIcon,
+    'FolderIcon': FolderIcon,
+    'FilterIcon': FilterIcon,
+    'MailIcon': MailIcon,
+    'TimeIcon': TimeIcon,
+  }
+  return icons[iconName] || BoltIcon
+}
+
 const workflowName = computed(() => decodeURIComponent(route.params.id as string))
 const debugMessage = ref('Ready to build workflow')
 const isDark = computed(() => colorMode.value === 'dark')
@@ -493,24 +539,82 @@ const onConnect = (params: any) => {
 
 // Handle node changes (position, deletion, etc.)
 const onNodesChange = (changes: any[]) => {
+
   console.log('Node changes:', changes)
-  saveToHistory()
+
+  
+
   changes.forEach(change => {
+
     if (change.type === 'position' && change.dragging) {
-      // Don't save intermediate drag states
-      return
-    }
-    // Apply the change
-    if (change.type === 'remove') {
-      nodes.value = nodes.value.filter(node => node.id !== change.id)
-    } else if (change.type === 'position') {
+
+      // Update position immediately during drag
+
       const node = nodes.value.find(n => n.id === change.id)
-      if (node) {
-        node.position = change.position
+
+      if (node && change.position) {
+
+        // Ensure position values are numbers and not undefined
+
+        node.position = {
+
+          x: Number(change.position.x) || node.position.x || 0,
+
+          y: Number(change.position.y) || node.position.y || 0
+
+        }
+
       }
+
+      return // Don't save to history during drag
+
     }
+
+    
+
+    // Save to history for other changes
+
+    saveToHistory()
+
+    
+
+    // Apply the change
+
+    if (change.type === 'remove') {
+
+      nodes.value = nodes.value.filter(node => node.id !== change.id)
+
+    } else if (change.type === 'position' && !change.dragging) {
+
+      const node = nodes.value.find(n => n.id === change.id)
+
+      if (node && change.position) {
+
+        // Ensure position values are numbers and not undefined
+
+        node.position = {
+
+          x: Number(change.position.x) || node.position.x || 0,
+
+          y: Number(change.position.y) || node.position.y || 0
+
+        }
+
+      }
+
+    }
+
   })
+
+  
+
+  // Update workflow data after changes are applied
+
+  updateWorkflowData()
+
 }
+
+
 
 // Handle edge changes
 const onEdgesChange = (changes: any[]) => {
@@ -523,9 +627,20 @@ const onEdgesChange = (changes: any[]) => {
   })
 }
 
+// Modify onDragStart to use the new component structure
 const onDragStart = (event: DragEvent, component: any) => {
   if (event.dataTransfer) {
-    event.dataTransfer.setData('application/vueflow', JSON.stringify(component))
+    const componentData = {
+      name: component.name,
+      type: component.type,
+      iconName: component.icon,
+      config: {
+        ...component.configurations,
+        inputs: component.inputs,
+        outputs: component.outputs
+      }
+    }
+    event.dataTransfer.setData('application/vueflow', JSON.stringify(componentData))
     event.dataTransfer.effectAllowed = 'move'
   }
 }
@@ -594,139 +709,6 @@ watch([nodes, edges], (newVal, oldVal) => {
   }
   updateWorkflowData()
 }, { deep: true })
-
-const componentCategories = [
-  {
-    name: 'Data Sources',
-    components: [
-      {
-        name: 'Group',
-        icon: FolderIcon,
-        iconName: 'FolderIcon',
-        type: 'custom_group',
-        config: {
-          description: '',
-          children: []
-        }
-      },
-      { 
-        name: 'Database Source',
-        icon: CircleStackIcon,
-        iconName: 'CircleStackIcon',
-        type: 'source',
-        config: {
-          source_type: 'postgresql',
-          query: '',
-          connection_string: ''
-        }
-      },
-      { 
-        name: 'API Source',
-        icon: CloudIcon,
-        iconName: 'CloudIcon',
-        type: 'source',
-        config: {
-          source_type: 'api',
-          endpoint: '',
-          method: 'GET'
-        }
-      },
-    ],
-  },
-  {
-    name: 'Processors',
-    components: [
-      {
-        name: 'Data Transformer',
-        icon: ArrowsPointingOutIcon,
-        iconName: 'ArrowsPointingOutIcon',
-        type: 'processor',
-        config: {
-          operations: [],
-          output_format: 'json'
-        }
-      },
-      {
-        name: 'Filter',
-        icon: FilterIcon,
-        iconName: 'FilterIcon',
-        type: 'processor',
-        config: {
-          conditions: []
-        }
-      },
-    ],
-  },
-  {
-    name: 'Actions',
-    components: [
-      {
-        name: 'Send Email',
-        icon: MailIcon,
-        iconName: 'MailIcon',
-        type: 'action',
-        config: {
-          action_type: 'send_email',
-          recipients: '',
-          template: ''
-        }
-      },
-      {
-        name: 'Slack Notification',
-        icon: ChatBubbleLeftRightIcon,
-        iconName: 'ChatBubbleLeftRightIcon',
-        type: 'action',
-        config: {
-          action_type: 'send_slack',
-          channel: '',
-          message_template: ''
-        }
-      },
-    ],
-  },
-  {
-    name: 'Triggers',
-    components: [
-      {
-        name: 'File Trigger',
-        icon: DocumentTextIcon,
-        iconName: 'DocumentTextIcon',
-        type: 'trigger',
-        config: {
-          source: 'google_drive',
-          watch_folder: '',
-          file_types: ''
-        }
-      },
-      {
-        name: 'Schedule',
-        icon: TimeIcon,
-        iconName: 'TimeIcon',
-        type: 'trigger',
-        config: {
-          schedule_type: 'cron',
-          expression: ''
-        }
-      },
-    ],
-  },
-  {
-    name: 'AI & ML',
-    components: [
-      {
-        name: 'AI Processor',
-        icon: BoltIcon,
-        iconName: 'BoltIcon',
-        type: 'ai',
-        config: {
-          model: 'gpt-4',
-          task: 'analyze_sentiment',
-          parameters: {}
-        }
-      },
-    ],
-  },
-]
 
 // Load workflow data on mount
 onMounted(() => {
