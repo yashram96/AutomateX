@@ -27,13 +27,25 @@
                 <p class="truncate text-sm text-gray-500 dark:text-gray-400">{{ workflow.description }}</p>
               </div>
               <div class="flex flex-shrink-0 space-x-2">
-                <button type="button" class="rounded-md bg-white dark:bg-gray-800 p-2 text-gray-400 hover:text-gray-500">
+                <button 
+                  type="button" 
+                  class="rounded-md bg-white dark:bg-gray-800 p-2 text-gray-400 hover:text-gray-500"
+                  @click="runWorkflow(workflow)"
+                >
                   <PlayIcon class="h-5 w-5" />
                 </button>
-                <button type="button" class="rounded-md bg-white dark:bg-gray-800 p-2 text-gray-400 hover:text-gray-500">
+                <button 
+                  type="button" 
+                  class="rounded-md bg-white dark:bg-gray-800 p-2 text-gray-400 hover:text-gray-500"
+                  @click="editWorkflow(workflow)"
+                >
                   <PencilIcon class="h-5 w-5" />
                 </button>
-                <button type="button" class="rounded-md bg-white dark:bg-gray-800 p-2 text-gray-400 hover:text-gray-500">
+                <button 
+                  type="button" 
+                  class="rounded-md bg-white dark:bg-gray-800 p-2 text-gray-400 hover:text-gray-500"
+                  @click="duplicateWorkflow(workflow)"
+                >
                   <DocumentDuplicateIcon class="h-5 w-5" />
                 </button>
               </div>
@@ -47,20 +59,275 @@
 
 <script setup lang="ts">
 import { PlayIcon, PencilIcon, DocumentDuplicateIcon } from '@heroicons/vue/24/outline'
-import { BoltIcon, EnvelopeIcon, CalendarIcon } from '@heroicons/vue/24/outline'
+import { BoltIcon, EnvelopeIcon, CalendarIcon, DocumentTextIcon } from '@heroicons/vue/24/outline'
+
+const router = useRouter()
+
+const editWorkflow = (workflow: any) => {
+  router.push(`/workflows/editor/${workflow.id}`)
+}
+
+const runWorkflow = (workflow: any) => {
+  // TODO: Implement workflow execution
+  console.log('Running workflow:', workflow.id)
+}
+
+const duplicateWorkflow = (workflow: any) => {
+  // TODO: Implement workflow duplication
+  console.log('Duplicating workflow:', workflow.id)
+}
+
+// Create sample workflow data
+
+const emailWorkflow = {
+  workflow_name: "Email Notification Flow",
+  description: "Sends email notifications when new documents are uploaded.",
+  version: 1,
+  created_by: "user-456",
+  created_at: "2024-04-03T10:00:00.000Z",
+  updated_by: "user-789",
+  updated_at: "2024-04-03T12:34:56.789Z",
+  viewport: {
+    x: 0,
+    y: 0,
+    zoom: 1
+  },
+  nodes: [
+    {
+      id: "node-1",
+      type: "input",
+      position: { x: 100, y: 100 },
+      data: {
+        label: "Google Docs Trigger",
+        icon: "DocumentTextIcon",
+        config: {
+          watchFolder: "/uploads",
+          fileTypes: ["*.doc", "*.pdf"]
+        }
+      }
+    },
+    {
+      id: "node-2",
+      type: "default",
+      position: { x: 400, y: 100 },
+      data: {
+        label: "Email Notification",
+        icon: "ChatBubbleLeftRightIcon",
+        config: {
+          to: "team@example.com",
+          template: "new-document-template"
+        }
+      }
+    }
+  ],
+  edges: [
+    {
+      id: "edge-1",
+      source: "node-1",
+      target: "node-2",
+      type: "smoothstep",
+      animated: true,
+      label: "On new document",
+      data: {
+        condition: "fileType === 'pdf'"
+      }
+    }
+  ]
+}
+const documentWorkflow = {
+  workflow: {
+    metadata: {
+      workflow_id: "wf-123",
+      name: "Document Processing Workflow",
+      description: "Processes uploaded documents and sends notifications",
+      version: 1,
+      status: "active",
+      created_by: "user-456",
+      created_at: "2024-04-03T10:00:00.000Z",
+      updated_by: "user-789",
+      updated_at: "2024-04-03T12:34:56.789Z",
+      tags: ["documents", "notifications"]
+    },
+    canvas: {
+      viewport: {
+        x: 0,
+        y: 0,
+        zoom: 1
+      },
+      dimensions: {
+        width: 2000,
+        height: 2000
+      }
+    },
+    nodes: [
+      {
+        id: "node-1",
+        type: "custom",
+        position: { x: 100, y: 100 },
+        data: {
+          label: "Document Upload Trigger",
+          icon: "DocumentTextIcon",
+          type: "trigger",
+          config: { 
+            source: "google_drive", 
+            watchFolder: "/uploads", 
+            fileTypes: ["*.doc", "*.pdf"] 
+          }
+        },
+        style: { width: 200, height: 100 },
+        dragHandle: ".custom-node-header",
+        connectable: true,
+        selectable: true,
+        sourcePosition: "Right",
+        targetPosition: "Left"
+      }
+    ],
+    edges: [
+      {
+        id: "edge-1",
+        source: "node-1",
+        target: "node-2",
+        sourceHandle: "output",
+        targetHandle: "input",
+        type: "smoothstep",
+        animated: true,
+        style: { stroke: "#0077ff", strokeWidth: 2 },
+        markerEnd: { type: "arrow" },
+        data: { label: "Document Ready", condition: "fileSize < 10000000" }
+      }
+    ],
+    execution: {
+      timeout: 300,
+      retry: { attempts: 3, backoff: "exponential" },
+      error_handling: { on_failure: "notify_admin" }
+    }
+  }
+}
+const sampleWorkflow = {
+  workflow: {
+    metadata: {
+      id: 'sample-data-pipeline',
+      name: 'Sample Data Pipeline',
+      description: 'A sample workflow demonstrating data processing and automation',
+      version: 1,
+      status: 'active',
+      created_by: 'user-123',
+      created_at: new Date().toISOString(),
+      updated_by: 'user-123',
+      updated_at: new Date().toISOString(),
+      tags: ['sample', 'data', 'automation']
+    },
+    nodes: [
+      {
+        id: 'node-1',
+        type: 'custom',
+        position: { x: 100, y: 100 },
+        data: {
+          label: 'Database Source',
+          icon: 'CircleStackIcon',
+          type: 'source',
+          config: {
+            source_type: 'postgresql',
+            query: 'SELECT * FROM users',
+          }
+        },
+        dragHandle: '.custom-node-header',
+        connectable: true,
+        selectable: true,
+      },
+      {
+        id: 'node-2',
+        type: 'custom',
+        position: { x: 400, y: 100 },
+        data: {
+          label: 'Data Transformer',
+          icon: 'ArrowsPointingOutIcon',
+          type: 'processor',
+          config: {
+            operations: ['remove_nulls', 'standardize_dates'],
+            output_format: 'json'
+          }
+        },
+        dragHandle: '.custom-node-header',
+        connectable: true,
+        selectable: true,
+      },
+      {
+        id: 'node-3',
+        type: 'custom',
+        position: { x: 700, y: 100 },
+        data: {
+          label: 'Send Email',
+          icon: 'MailIcon',
+          type: 'action',
+          config: {
+            action_type: 'send_email',
+            recipients: 'team@example.com',
+            template: 'data-report'
+          }
+        },
+        dragHandle: '.custom-node-header',
+        connectable: true,
+        selectable: true,
+      }
+    ],
+    edges: [
+      {
+        id: 'edge-1',
+        source: 'node-1',
+        target: 'node-2',
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#0077ff', strokeWidth: 2 },
+        markerEnd: { type: 'arrow' }
+      },
+      {
+        id: 'edge-2',
+        source: 'node-2',
+        target: 'node-3',
+        type: 'smoothstep',
+        animated: true,
+        style: { stroke: '#0077ff', strokeWidth: 2 },
+        markerEnd: { type: 'arrow' }
+      }
+    ]
+  }
+}
+
+// Save sample workflow to localStorage on component mount
+onMounted(() => {
+  localStorage.setItem('workflow-sample-data-pipeline', JSON.stringify(sampleWorkflow))
+  localStorage.setItem('workflow-wf-123', JSON.stringify(documentWorkflow))
+  localStorage.setItem('workflow-email-notification-flow', JSON.stringify(emailWorkflow))
+})
 
 const workflows = [
   {
-    name: 'Daily Data Sync',
-    description: 'Syncs data between CRM and marketing platforms every day at 9 AM',
+    id: 'email-notification-flow',
+    name: 'Email Notification Flow',
+    description: 'Sends email notifications when new documents are uploaded.',
+    icon: EnvelopeIcon,
+  },
+  {
+    id: 'wf-123',
+    name: 'Document Processing Workflow',
+    description: 'Processes uploaded documents and sends notifications',
+    icon: DocumentTextIcon,
+  },
+  {
+    id: 'sample-data-pipeline',
+    name: 'Sample Data Pipeline',
+    description: 'A sample workflow demonstrating data processing and automation',
     icon: BoltIcon,
   },
   {
+    id: 'email-automation',
     name: 'Email Campaign Automation',
     description: 'Triggers personalized email sequences based on user actions',
     icon: EnvelopeIcon,
   },
   {
+    id: 'calendar-sync',
     name: 'Calendar Integration',
     description: 'Automatically schedules meetings and sends reminders',
     icon: CalendarIcon,

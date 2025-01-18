@@ -57,3 +57,49 @@
   cursor: move;
   transition: transform 0.1s ease-out;
 }
+
+/* Connection Styles */
+.vue-flow__edge {
+  stroke: #0077ff !important;
+  stroke-width: 2;
+}
+
+.vue-flow__edge-path {
+  stroke: currentColor;
+}
+
+.vue-flow__edge.selected {
+  stroke: #0057d5 !important;
+  stroke-width: 3;
+  cursor: pointer;
+}
+
+.vue-flow__edge:hover {
+  stroke: #0057d5 !important;
+  stroke-width: 3;
+  cursor: pointer;
+}
+
+/* Handle Styles */
+.vue-flow__handle {
+  width: 8px;
+  height: 8px;
+  @apply bg-primary-500 border-2 border-white dark:border-gray-800;
+  border-radius: 50%;
+}
+
+.vue-flow__handle:hover {
+  @apply bg-primary-600;
+}
+
+.vue-flow__handle-connecting {
+  @apply bg-primary-400;
+}
+
+.vue-flow__handle-valid {
+  @apply bg-green-500;
+}
+
+.vue-flow__handle-invalid {
+  @apply bg-red-500;
+}

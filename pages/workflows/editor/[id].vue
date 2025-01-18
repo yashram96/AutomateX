@@ -3,7 +3,7 @@
     <!-- Editor Header -->
     <div class="sticky top-0 z-10 flex-none border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4">
       <div class="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
-        <div class="flex items-center">
+        <div class="flex items-center space-x-4">
           <NuxtLink
             to="/"
             class="mr-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
@@ -11,6 +11,40 @@
             <ArrowLeftIcon class="h-6 w-6" />
           </NuxtLink>
           <h1 class="text-lg font-semibold text-gray-900 dark:text-white">{{ workflowName }}</h1>
+          
+          <!-- Undo/Redo Buttons -->
+          <div class="flex items-center space-x-2 ml-4">
+            <button
+              type="button"
+              :disabled="!canUndo"
+              :class="[
+                'inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm',
+                canUndo
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              ]"
+              @click="undo"
+              title="Undo (Ctrl/Cmd + Z)"
+            >
+              <ArrowUturnLeftIcon class="h-4 w-4 mr-1" />
+              Undo
+            </button>
+            <button
+              type="button"
+              :disabled="!canRedo"
+              :class="[
+                'inline-flex items-center rounded-md px-3 py-2 text-sm font-semibold shadow-sm',
+                canRedo
+                  ? 'bg-white dark:bg-gray-700 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600'
+                  : 'bg-gray-100 dark:bg-gray-800 text-gray-400 dark:text-gray-500 cursor-not-allowed'
+              ]"
+              @click="redo"
+              title="Redo (Ctrl/Cmd + Shift + Z)"
+            >
+              <ArrowUturnRightIcon class="h-4 w-4 mr-1" />
+              Redo
+            </button>
+          </div>
         </div>
         <div class="flex items-center space-x-2">
           <button
@@ -23,6 +57,7 @@
           <button
             type="button"
             class="inline-flex items-center rounded-md bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
+            @click="saveWorkflow"
           >
             <CheckIcon class="h-4 w-4 mr-2" />
             Save & Activate
@@ -37,14 +72,27 @@
         <!-- Canvas -->
         <div class="flex-1 bg-gray-50 dark:bg-gray-900 transition-colors duration-200 dark:text-white">
           <VueFlow
-            v-model="elements"
+            v-model="nodes"
+            :edges="edges"
+            :nodesDraggable="true"
+            :default-edge-options="defaultEdgeOptions"
+            @nodesDragStop="updateWorkflowData"
+            @nodesChange="onNodesChange"
+            @edgesChange="onEdgesChange"
+            @connect="onConnect"
             :default-viewport="{ zoom: 1 }"
             :min-zoom="0.2"
             :max-zoom="4"
             class="h-full"
             @drop="onDrop"
             @dragover="onDragOver"
-            fit-view-on-init
+            :fit-view-on-init="false"
+            :snap-to-grid="true"
+            :delete-key-code="'Delete'"
+            :multi-selection-key-code="'Control'"
+            :selection-key-code="'Shift'"
+            :elevate-nodes-on-select="true"
+            :auto-pan-on-node-drag="true"
           >
             <template #node-custom="nodeProps">
               <CustomNode v-bind="nodeProps" />
@@ -110,8 +158,13 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { VueFlow, useVueFlow, Panel } from '@vue-flow/core'
+definePageMeta({
+  layout: 'authenticated',
+  middleware: ['auth']
+})
+
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { VueFlow, useVueFlow, Panel, Position } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
@@ -132,23 +185,343 @@ import {
   ArrowsPointingOutIcon,
   ArrowPathRoundedSquareIcon,
   CloudIcon,
+  CircleStackIcon,
+  ArrowUturnLeftIcon,
+  ArrowUturnRightIcon,
+  FolderIcon,
+  FunnelIcon as FilterIcon,
+  EnvelopeIcon as MailIcon,
+  ClockIcon as TimeIcon,
 } from '@heroicons/vue/24/outline'
 
 const route = useRoute()
 const router = useRouter()
 const colorMode = useColorMode()
-
-// Ensure we have a valid ID parameter
-if (!route.params.id) {
-  router.push('/')
-}
-
+const { viewport } = useVueFlow({
+  defaultViewport: { x: 0, y: 0, zoom: 1 },
+  minZoom: 0.2,
+  maxZoom: 4,
+})
 const workflowName = computed(() => decodeURIComponent(route.params.id as string))
 const debugMessage = ref('Ready to build workflow')
 const isDark = computed(() => colorMode.value === 'dark')
+const nodes = ref<any[]>([])
+const edges = ref<any[]>([])
 
-const elements = ref([])
-const { addNodes, addEdges, project } = useVueFlow()
+// Initialize history with empty arrays
+const history = ref({
+  past: [] as any[],
+  future: [] as any[],
+  current: {
+    nodes: [],
+    edges: []
+  }
+})
+
+// Add undo/redo state tracking
+const canUndo = computed(() => history.value.past.length > 0)
+const canRedo = computed(() => history.value.future.length > 0)
+
+// Save current state to history before making changes
+const saveToHistory = () => {
+  const currentState = {
+    nodes: JSON.parse(JSON.stringify(nodes.value)),
+    edges: JSON.parse(JSON.stringify(edges.value))
+  }
+  
+  history.value.past.push(history.value.current)
+  history.value.current = currentState
+  history.value.future = []
+  
+  console.log('Saved state to history:', {
+    pastLength: history.value.past.length,
+    currentNodes: currentState.nodes.length,
+    currentEdges: currentState.edges.length
+  })
+}
+
+// Initialize history with current state
+const initHistory = () => {
+  history.value = {
+    past: [],
+    future: [],
+    current: {
+      nodes: JSON.parse(JSON.stringify(nodes.value)),
+      edges: JSON.parse(JSON.stringify(edges.value))
+    }
+  }
+}
+
+// Apply a state to the editor
+const applyState = (state: any) => {
+  console.log('Applying state:', {
+    nodes: state.nodes.length,
+    edges: state.edges.length
+  })
+  
+  // Clear existing nodes and edges
+  nodes.value = []
+  edges.value = []
+  
+  // Add new nodes and edges
+  nodes.value = JSON.parse(JSON.stringify(state.nodes))
+  edges.value = JSON.parse(JSON.stringify(state.edges))
+}
+
+const undo = () => {
+  if (canUndo.value) {
+    const previous = history.value.past.pop()
+    history.value.future.push(history.value.current)
+    history.value.current = previous
+    
+    applyState(previous)
+    debugMessage.value = 'Undid last action'
+    console.log('Undo completed:', {
+      pastLength: history.value.past.length,
+      futureLength: history.value.future.length
+    })
+  }
+}
+
+const redo = () => {
+  if (canRedo.value) {
+    const next = history.value.future.pop()
+    history.value.past.push(history.value.current)
+    history.value.current = next
+    
+    applyState(next)
+    debugMessage.value = 'Redid last action'
+    console.log('Redo completed:', {
+      pastLength: history.value.past.length,
+      futureLength: history.value.future.length
+    })
+  }
+}
+
+// Handle keyboard shortcuts
+const handleKeyDown = (event: KeyboardEvent) => {
+  if ((event.metaKey || event.ctrlKey) && event.key === 'z') {
+    if (event.shiftKey) {
+      // Cmd/Ctrl + Shift + Z = Redo
+      event.preventDefault()
+      redo()
+    } else {
+      // Cmd/Ctrl + Z = Undo
+      event.preventDefault()
+      undo()
+    }
+  } else if ((event.metaKey || event.ctrlKey) && event.key === 'y') {
+    // Cmd/Ctrl + Y = Redo (alternative)
+    event.preventDefault()
+    redo()
+  }
+}
+
+const workflowData = ref({
+  workflow: {
+    metadata: {
+      id: route.params.id,
+      name: workflowName.value,
+      description: "Workflow created in editor",
+      version: 1,
+      status: "draft",
+      created_by: "user-123", // TODO: Replace with actual user ID
+      created_at: new Date().toISOString(),
+      updated_by: "user-123", // TODO: Replace with actual user ID
+      updated_at: new Date().toISOString(),
+      tags: []
+    },
+    canvas: {
+      viewport: {
+        x: 0,
+        y: 0,
+        zoom: 1
+      },
+      dimensions: {
+        width: 2000,
+        height: 2000
+      }
+    },
+    nodes: [],
+    edges: [],
+    execution: {
+      timeout: 300,
+      retry: {
+        attempts: 3,
+        backoff: "exponential"
+      },
+      error_handling: {
+        on_failure: "notify_admin"
+      }
+    }
+  }
+})
+
+const defaultEdgeOptions = {
+  type: 'smoothstep',
+  style: { stroke: '#0077ff', strokeWidth: 2 },
+  animated: true,
+  markerEnd: { type: 'arrow' },
+}
+
+const updateWorkflowData = () => {
+  console.log('Updating workflow data...')
+  workflowData.value = {
+    workflow: {
+      ...workflowData.value.workflow,
+      metadata: {
+        ...workflowData.value.workflow.metadata,
+        updated_at: new Date().toISOString()
+      },
+      nodes: nodes.value.map(node => ({
+        ...node,
+        data: {
+          ...node.data,
+          config: node.data.config || {}
+        }
+      })),
+      edges: edges.value.map(edge => ({
+        ...edge,
+        data: {
+          label: edge.label || '',
+          condition: null
+        }
+      }))
+    }
+  }
+  console.log('Updated workflow structure:', JSON.stringify(workflowData.value, null, 2))
+}
+
+const saveWorkflow = () => {
+  console.log('Saving workflow...')
+  updateWorkflowData()
+  
+  // Save to localStorage with pretty formatting for debugging
+  localStorage.setItem(
+    `workflow-${workflowData.value.workflow.metadata.id}`, 
+    JSON.stringify(workflowData.value, null, 2)
+  )
+  
+  console.log('Workflow saved successfully:', {
+    id: workflowData.value.workflow.metadata.id,
+    name: workflowData.value.workflow.metadata.name,
+    nodesCount: workflowData.value.workflow.nodes.length,
+    edgesCount: workflowData.value.workflow.edges.length,
+    lastModified: workflowData.value.workflow.metadata.updated_at
+  })
+  
+  debugMessage.value = 'Workflow saved successfully'
+}
+
+const loadWorkflow = () => {
+  console.log('Loading workflow...')
+  const saved = localStorage.getItem(`workflow-${workflowData.value.workflow.metadata.id}`)
+  if (saved) {
+    const data = JSON.parse(saved)
+    // Handle different workflow data structures
+    if (data.workflow) {
+      // Handle nested workflow structure
+      workflowData.value = data
+      nodes.value = data.workflow.nodes.map(node => ({
+        ...node,
+        type: 'custom', // Ensure correct node type
+        dragHandle: '.custom-node-header',
+        connectable: true,
+        selectable: true,
+      }))
+      edges.value = data.workflow.edges || []
+    } else {
+      // Handle flat workflow structure
+      workflowData.value = {
+        workflow: {
+          metadata: {
+            id: data.workflow_name || route.params.id,
+            name: data.workflow_name || workflowName.value,
+            description: data.description || '',
+            version: data.version || 1,
+          },
+          nodes: data.nodes || [],
+          edges: data.edges || []
+        }
+      }
+      nodes.value = data.nodes.map(node => ({
+        ...node,
+        type: 'custom', // Ensure correct node type
+        dragHandle: '.custom-node-header',
+        connectable: true,
+        selectable: true,
+      }))
+      edges.value = data.edges || []
+    }
+    console.log('Workflow loaded successfully:', {
+      id: workflowData.value.workflow.metadata.id,
+      name: workflowData.value.workflow.metadata.name,
+      nodesCount: nodes.value.length,
+      edgesCount: edges.value.length
+    })
+    console.log('Loaded nodes:', nodes.value)
+    console.log('Loaded edges:', edges.value)
+    debugMessage.value = 'Workflow loaded successfully'
+  } else {
+    console.log('No saved workflow found, starting fresh')
+  }
+}
+
+const onConnect = (params: any) => {
+  saveToHistory()
+  console.log('Creating new edge connection:', params)
+  const edge = {
+    id: `edge-${Date.now()}`,
+    source: params.source,
+    target: params.target,
+    sourceHandle: params.sourceHandle,
+    targetHandle: params.targetHandle,
+    type: 'smoothstep',
+    animated: true,
+    style: { stroke: '#0077ff', strokeWidth: 2 },
+    markerEnd: { type: 'arrow' },
+    data: {
+      label: '',
+      condition: null
+    }
+  }
+  edges.value.push(edge)
+  updateWorkflowData()
+  console.log('Edge created:', edge)
+  debugMessage.value = 'Connected nodes'
+}
+
+// Handle node changes (position, deletion, etc.)
+const onNodesChange = (changes: any[]) => {
+  console.log('Node changes:', changes)
+  saveToHistory()
+  changes.forEach(change => {
+    if (change.type === 'position' && change.dragging) {
+      // Don't save intermediate drag states
+      return
+    }
+    // Apply the change
+    if (change.type === 'remove') {
+      nodes.value = nodes.value.filter(node => node.id !== change.id)
+    } else if (change.type === 'position') {
+      const node = nodes.value.find(n => n.id === change.id)
+      if (node) {
+        node.position = change.position
+      }
+    }
+  })
+}
+
+// Handle edge changes
+const onEdgesChange = (changes: any[]) => {
+  console.log('Edge changes:', changes)
+  saveToHistory()
+  changes.forEach(change => {
+    if (change.type === 'remove') {
+      edges.value = edges.value.filter(edge => edge.id !== change.id)
+    }
+  })
+}
 
 const onDragStart = (event: DragEvent, component: any) => {
   if (event.dataTransfer) {
@@ -165,47 +538,212 @@ const onDragOver = (event: DragEvent) => {
 }
 
 const onDrop = (event: DragEvent) => {
-  const data = JSON.parse(event.dataTransfer?.getData('application/vueflow') || '{}')
-  const position = project({ x: event.clientX, y: event.clientY })
+  saveToHistory()
+  console.log('Handling component drop...')
+  try {
+    const data = JSON.parse(event.dataTransfer?.getData('application/vueflow') || '{}')
+  
+    // Get the wrapper bounds
+    const wrapper = event.currentTarget as HTMLDivElement
+    if (!wrapper) {
+      console.error('No wrapper element found')
+      return
+    }
+    const bounds = wrapper.getBoundingClientRect()
+  
+    // Calculate position relative to the pane
+    const position = {
+      x: (event.clientX - bounds.left - (viewport.value?.x || 0)) / (viewport.value?.zoom || 1),
+      y: (event.clientY - bounds.top - (viewport.value?.y || 0)) / (viewport.value?.zoom || 1)
+    }
 
-  const newNode = {
-    id: `node-${Date.now()}`,
-    type: 'custom',
-    position,
-    data: { 
-      label: data.name,
-      icon: data.iconName,
-    },
+    console.log('Calculated drop position:', position)
+
+    const newNode = {
+      id: `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      type: 'custom',
+      position,
+      data: { 
+        label: data.name,
+        icon: data.iconName,
+        config: data.config || {},
+        type: data.type || 'default'
+      },
+      dragHandle: '.custom-node-header',
+      connectable: true,
+      selectable: true,
+      sourcePosition: Position.Right,
+      targetPosition: Position.Left,
+    }
+
+    console.log('Creating new node:', newNode)
+    nodes.value.push(newNode)
+    debugMessage.value = `Added ${data.name} component`
+    updateWorkflowData()
+  } catch (error) {
+    console.error('Error handling drop:', error)
+    debugMessage.value = 'Error adding component'
   }
-
-  addNodes([newNode])
-  debugMessage.value = `Added ${data.name} component`
 }
+
+// Watch for changes and update workflow data
+watch([nodes, edges], (newVal, oldVal) => {
+  // Only update if there are actual changes
+  if (JSON.stringify(newVal) === JSON.stringify(oldVal)) {
+    return
+  }
+  updateWorkflowData()
+}, { deep: true })
 
 const componentCategories = [
   {
-    name: 'Popular Integrations',
+    name: 'Data Sources',
     components: [
-      { name: 'Google Docs', icon: DocumentTextIcon, iconName: 'DocumentTextIcon' },
-      { name: 'Slack', icon: ChatBubbleLeftRightIcon, iconName: 'ChatBubbleLeftRightIcon' },
-      { name: 'Trello', icon: DocumentTextIcon, iconName: 'DocumentTextIcon' },
-      { name: 'Email', icon: ChatBubbleLeftRightIcon, iconName: 'ChatBubbleLeftRightIcon' },
+      {
+        name: 'Group',
+        icon: FolderIcon,
+        iconName: 'FolderIcon',
+        type: 'custom_group',
+        config: {
+          description: '',
+          children: []
+        }
+      },
+      { 
+        name: 'Database Source',
+        icon: CircleStackIcon,
+        iconName: 'CircleStackIcon',
+        type: 'source',
+        config: {
+          source_type: 'postgresql',
+          query: '',
+          connection_string: ''
+        }
+      },
+      { 
+        name: 'API Source',
+        icon: CloudIcon,
+        iconName: 'CloudIcon',
+        type: 'source',
+        config: {
+          source_type: 'api',
+          endpoint: '',
+          method: 'GET'
+        }
+      },
     ],
   },
   {
-    name: 'Logic Components',
+    name: 'Processors',
     components: [
-      { name: 'If/Else', icon: ArrowsPointingOutIcon, iconName: 'ArrowsPointingOutIcon' },
-      { name: 'Loop', icon: ArrowPathRoundedSquareIcon, iconName: 'ArrowPathRoundedSquareIcon' },
-      { name: 'Delay', icon: ArrowsPointingInIcon, iconName: 'ArrowsPointingInIcon' },
+      {
+        name: 'Data Transformer',
+        icon: ArrowsPointingOutIcon,
+        iconName: 'ArrowsPointingOutIcon',
+        type: 'processor',
+        config: {
+          operations: [],
+          output_format: 'json'
+        }
+      },
+      {
+        name: 'Filter',
+        icon: FilterIcon,
+        iconName: 'FilterIcon',
+        type: 'processor',
+        config: {
+          conditions: []
+        }
+      },
     ],
   },
   {
-    name: 'AI Components',
+    name: 'Actions',
     components: [
-      { name: 'AI Bot', icon: BoltIcon, iconName: 'BoltIcon' },
-      { name: 'Custom API', icon: CloudIcon, iconName: 'CloudIcon' },
+      {
+        name: 'Send Email',
+        icon: MailIcon,
+        iconName: 'MailIcon',
+        type: 'action',
+        config: {
+          action_type: 'send_email',
+          recipients: '',
+          template: ''
+        }
+      },
+      {
+        name: 'Slack Notification',
+        icon: ChatBubbleLeftRightIcon,
+        iconName: 'ChatBubbleLeftRightIcon',
+        type: 'action',
+        config: {
+          action_type: 'send_slack',
+          channel: '',
+          message_template: ''
+        }
+      },
+    ],
+  },
+  {
+    name: 'Triggers',
+    components: [
+      {
+        name: 'File Trigger',
+        icon: DocumentTextIcon,
+        iconName: 'DocumentTextIcon',
+        type: 'trigger',
+        config: {
+          source: 'google_drive',
+          watch_folder: '',
+          file_types: ''
+        }
+      },
+      {
+        name: 'Schedule',
+        icon: TimeIcon,
+        iconName: 'TimeIcon',
+        type: 'trigger',
+        config: {
+          schedule_type: 'cron',
+          expression: ''
+        }
+      },
+    ],
+  },
+  {
+    name: 'AI & ML',
+    components: [
+      {
+        name: 'AI Processor',
+        icon: BoltIcon,
+        iconName: 'BoltIcon',
+        type: 'ai',
+        config: {
+          model: 'gpt-4',
+          task: 'analyze_sentiment',
+          parameters: {}
+        }
+      },
     ],
   },
 ]
+
+// Load workflow data on mount
+onMounted(() => {
+  // Add keyboard shortcut listener
+  window.addEventListener('keydown', handleKeyDown)
+
+  // Ensure we have a valid ID parameter
+  if (!route.params.id) {
+    router.push('/')
+    return
+  }
+  loadWorkflow()
+  initHistory()
+})
+
+// Clean up event listener
+onUnmounted(() => {
+  window.removeEventListener('keydown', handleKeyDown)
+})
 </script>

@@ -1,5 +1,5 @@
 <template>
-  <header class="fixed top-0 left-0 right-0 z-40 bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+  <header class="fixed top-0 left-0 right-0 z-40 bg-surface-light dark:bg-surface-dark border-b border-gray-200 dark:border-gray-800/50 backdrop-blur-sm">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
       <div class="flex h-16 items-center justify-between">
         <!-- Logo -->
@@ -24,13 +24,13 @@
             <div class="w-full">
               <label for="search" class="sr-only">Search</label>
               <div class="relative">
-                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
+                <div class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3 opacity-60">
                   <MagnifyingGlassIcon class="h-5 w-5 text-gray-400" aria-hidden="true" />
                 </div>
                 <input
                   id="search"
                   name="search"
-                  class="block w-full rounded-md border-0 bg-white dark:bg-gray-700 py-1.5 pl-10 pr-3 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-300 dark:ring-gray-600 placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-500 sm:text-sm sm:leading-6"
+                  class="block w-full rounded-md border-0 bg-white/10 dark:bg-gray-800/30 py-1.5 pl-10 pr-3 text-gray-900 dark:text-white ring-1 ring-inset ring-gray-200 dark:ring-gray-700/50 placeholder:text-gray-500 dark:placeholder:text-gray-400 focus:ring-2 focus:ring-inset focus:ring-primary-500/50 sm:text-sm sm:leading-6 backdrop-blur-sm transition-all duration-200 hover:bg-white/20 dark:hover:bg-gray-800/40 focus:bg-white/30 dark:focus:bg-gray-800/50"
                   placeholder="Search..."
                   type="search"
                 />

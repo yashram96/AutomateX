@@ -1,7 +1,5 @@
 <template>
   <div class="bg-white dark:bg-gray-900">
-    <LandingHeader />
-    
     <!-- Hero Section -->
     <div class="relative isolate overflow-hidden">
       <div class="mx-auto max-w-7xl px-6 pb-24 pt-10 sm:pb-32 lg:flex lg:px-8 lg:py-40">
@@ -14,7 +12,7 @@
           </p>
           <div class="mt-10 flex items-center gap-x-6">
             <NuxtLink
-              to="/dashboard"
+              to="/signup"
               class="rounded-md bg-primary-600 px-3.5 py-2.5 text-sm font-semibold text-white shadow-sm hover:bg-primary-500 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600"
             >
               Start Automating Today
@@ -27,7 +25,6 @@
       </div>
     </div>
 
-    <!-- Rest of the landing page content -->
     <!-- Why AutomateX Section -->
     <div class="bg-white dark:bg-gray-900 py-24 sm:py-32">
       <div class="mx-auto max-w-7xl px-6 lg:px-8">
@@ -268,7 +265,7 @@
           </p>
           <div class="mt-10 flex items-center justify-center gap-x-6">
             <NuxtLink
-              to="/auth/signup"
+              to="/signup"
               class="rounded-md bg-white px-3.5 py-2.5 text-sm font-semibold text-primary-600 shadow-sm hover:bg-primary-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
             >
               Start Your Free Trial
@@ -332,6 +329,4 @@ import {
   UserGroupIcon,
   Cog6ToothIcon,
 } from '@heroicons/vue/24/outline'
-
-import LandingHeader from '~/components/layout/LandingHeader.vue'
 </script>

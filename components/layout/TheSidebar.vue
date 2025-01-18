@@ -25,15 +25,15 @@
             leave-from="translate-x-0"
             leave-to="-translate-x-full"
           >
-            <DialogPanel class="relative mr-16 flex w-full max-w-xs flex-1">
-              <div class="flex grow flex-col bg-white dark:bg-gray-800">
+          <DialogPanel class="relative mr-16 flex w-full max-w-xs flex-1 bg-surface-light dark:bg-surface-dark">
+              <div class="flex grow flex-col">
                 <div class="flex h-16 shrink-0 items-center px-6">
                   <BoltIcon class="h-8 w-8 text-primary-600" />
                   <span class="ml-2 text-xl font-bold text-gray-900 dark:text-white">AutomateX</span>
                 </div>
                 <SidebarContent />
-              </div>
-            </DialogPanel>
+            </div>
+          </DialogPanel>
           </TransitionChild>
         </div>
       </Dialog>
@@ -41,10 +41,10 @@
 
     <!-- Static sidebar for desktop -->
     <div :class="[
-      'hidden lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:flex-col transition-all duration-300',
+      'hidden lg:fixed lg:inset-y-0 lg:z-30 lg:flex lg:flex-col transition-all duration-300 bg-surface-light dark:bg-surface-dark',
       isCollapsed ? 'lg:w-16' : 'lg:w-72'
     ]">
-      <div class="flex h-full flex-col border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800">
+      <div class="flex h-full flex-col border-r border-gray-200 dark:border-gray-800/50">
         <div class="flex h-16 shrink-0 items-center justify-between px-4">
           <div class="flex items-center">
             <BoltIcon class="h-8 w-8 text-primary-600 flex-shrink-0" />
