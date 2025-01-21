@@ -183,6 +183,10 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  layout: 'authenticated',
+  middleware: ['auth']
+})
 import { CogIcon } from '@heroicons/vue/24/outline'
 import EnvironmentVariablesModal from '~/components/workflow/EnvironmentVariablesModal.vue'
 
@@ -226,11 +230,6 @@ import {
   ClockIcon as TimeIcon,
 } from '@heroicons/vue/24/outline'
 import { useComponents } from '~/composables/useComponents'
-
-definePageMeta({
-  layout: 'authenticated',
-  middleware: ['auth']
-})
 
 const route = useRoute()
 const router = useRouter()
