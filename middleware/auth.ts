@@ -1,8 +1,19 @@
 export default defineNuxtRouteMiddleware((to) => {
-  const user = useState('user')
+  const { validateSession } = useAuth()
   
-  // If user is not logged in and trying to access a protected route
-  if (!user.value && to.path !== '/' && !to.path.startsWith('/auth/')) {
-    return navigateTo('/auth/login')
+  // Public routes that don't require auth
+  const publicRoutes = ['/', '/auth/login', '/auth/signup']
+  
+  // Skip auth check for public routes
+  if (publicRoutes.includes(to.path)) {
+    return
+  }
+
+  // For protected routes, validate the session
+  if (process.client) {
+    const isValid = validateSession()
+    if (!isValid) {
+      return navigateTo('/auth/login')
+    }
   }
 })

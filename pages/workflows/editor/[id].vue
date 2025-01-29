@@ -49,6 +49,14 @@
         <div class="flex items-center space-x-2">
           <button
             type="button"
+            @click="showEnvVarsModal = true"
+            class="inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
+          >
+            <CogIcon class="h-4 w-4 mr-2" />
+            Environment Variables
+          </button>
+          <button
+            type="button"
             class="inline-flex items-center rounded-md bg-white dark:bg-gray-700 px-3 py-2 text-sm font-semibold text-gray-900 dark:text-white shadow-sm ring-1 ring-inset ring-gray-300 dark:ring-gray-600 hover:bg-gray-50 dark:hover:bg-gray-600"
           >
             <ArrowPathIcon class="h-4 w-4 mr-2" />
@@ -163,6 +171,14 @@
         </div>
       </div>
     </div>
+
+    <!-- Environment Variables Modal -->
+    <EnvironmentVariablesModal
+      :is-open="showEnvVarsModal"
+      :initial-variables="workflowData.workflow.environment"
+      @close="showEnvVarsModal = false"
+      @update="updateEnvironmentVariables"
+    />
   </div>
 </template>
 
@@ -171,6 +187,17 @@ definePageMeta({
   layout: 'authenticated',
   middleware: ['auth']
 })
+import { CogIcon } from '@heroicons/vue/24/outline'
+import EnvironmentVariablesModal from '~/components/workflow/EnvironmentVariablesModal.vue'
+
+// Add new refs
+const showEnvVarsModal = ref(false)
+
+// Add new method to handle environment variables updates
+const updateEnvironmentVariables = (variables: Record<string, string>) => {
+  workflowData.value.workflow.environment = variables
+  saveWorkflow()
+}
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { VueFlow, useVueFlow, Panel, Position } from '@vue-flow/core'
@@ -377,6 +404,7 @@ const workflowData = ref({
       updated_at: new Date().toISOString(),
       tags: []
     },
+    environment: {} as Record<string, string>,
     canvas: {
       viewport: {
         x: 0,
