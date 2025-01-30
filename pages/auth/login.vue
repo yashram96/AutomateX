@@ -82,15 +82,23 @@
 
 <script setup lang="ts">
 import { BoltIcon } from '@heroicons/vue/24/outline'
+import { useAuth } from '~/composables/useAuth'
 
 const email = ref('')
 const password = ref('')
 const rememberMe = ref(false)
+const { setUser } = useAuth()
+const router = useRouter()
 
 const handleLogin = () => {
-  // TODO: Implement actual login logic
-  const user = useState('user')
-  user.value = { email: email.value }
-  navigateTo('/dashboard')
+  // Simulate login validation
+  if (email.value && password.value) {
+    setUser({
+      email: email.value,
+      name: email.value.split('@')[0],
+      role: 'user'
+    })
+  }
+  router.push('/dashboard')
 }
 </script>
