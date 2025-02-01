@@ -82,6 +82,7 @@
                       active ? 'bg-gray-100 dark:bg-gray-700' : '',
                       'block px-4 py-2 text-sm text-gray-700 dark:text-gray-300',
                     ]"
+                    @click="item.name === 'Logout' ? handleLogout() : null"
                   >
                     {{ item.name }}
                   </a>
@@ -106,6 +107,15 @@ import {
   Bars3Icon,
   MagnifyingGlassIcon,
 } from '@heroicons/vue/24/outline'
+import { useAuth } from '~/composables/useAuth'
+
+const { clearUser } = useAuth()
+const router = useRouter()
+
+const handleLogout = () => {
+  clearUser()
+  router.push('/')
+}
 
 const navigation = [
   { name: 'Dashboard', href: '/' },
@@ -119,7 +129,7 @@ const userNavigation = [
   { name: 'Account Settings', href: '#' },
   { name: 'Notifications', href: '#' },
   { name: 'Billing Information', href: '#' },
-  { name: 'Logout', href: '#' },
+  { name: 'Logout', href: 'javascript:void(0)' },
 ]
 
 defineEmits(['toggle-sidebar'])

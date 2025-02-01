@@ -2,10 +2,10 @@
   <div class="flex h-screen flex-col">
     <!-- Editor Header -->
     <div class="sticky top-0 z-10 flex-none border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 px-4">
-      <div class="flex h-16 items-center justify-between px-4 sm:px-6 lg:px-8">
+      <div class="flex h-16 items-center justify-between">
         <div class="flex items-center space-x-4">
           <NuxtLink
-            to="/"
+            to="/dashboard"
             class="mr-4 text-gray-400 hover:text-gray-500 dark:hover:text-gray-300"
           >
             <ArrowLeftIcon class="h-6 w-6" />
@@ -172,6 +172,9 @@
       </div>
     </div>
 
+    <!-- Execution Panel -->
+    <ExecutionPanel v-model:isExpanded="isExecutionPanelExpanded" />
+
     <!-- Environment Variables Modal -->
     <EnvironmentVariablesModal
       :is-open="showEnvVarsModal"
@@ -187,17 +190,6 @@ definePageMeta({
   layout: 'authenticated',
   middleware: ['auth']
 })
-import { CogIcon } from '@heroicons/vue/24/outline'
-import EnvironmentVariablesModal from '~/components/workflow/EnvironmentVariablesModal.vue'
-
-// Add new refs
-const showEnvVarsModal = ref(false)
-
-// Add new method to handle environment variables updates
-const updateEnvironmentVariables = (variables: Record<string, string>) => {
-  workflowData.value.workflow.environment = variables
-  saveWorkflow()
-}
 
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { VueFlow, useVueFlow, Panel, Position } from '@vue-flow/core'
@@ -205,10 +197,13 @@ import { Background } from '@vue-flow/background'
 import { Controls } from '@vue-flow/controls'
 import { MiniMap } from '@vue-flow/minimap'
 import CustomNode from '~/components/workflow/CustomNode.vue'
+import ExecutionPanel from '~/components/workflow/ExecutionPanel.vue'
+import EnvironmentVariablesModal from '~/components/workflow/EnvironmentVariablesModal.vue'
 import '@vue-flow/core/dist/style.css'
 import '@vue-flow/core/dist/theme-default.css'
 import '@vue-flow/controls/dist/style.css'
 import '@vue-flow/minimap/dist/style.css'
+
 import {
   ArrowLeftIcon,
   ArrowPathIcon,
@@ -228,7 +223,9 @@ import {
   FunnelIcon as FilterIcon,
   EnvelopeIcon as MailIcon,
   ClockIcon as TimeIcon,
+  CogIcon,
 } from '@heroicons/vue/24/outline'
+
 import { useComponents } from '~/composables/useComponents'
 
 const route = useRoute()
@@ -280,6 +277,8 @@ const debugMessage = ref('Ready to build workflow')
 const isDark = computed(() => colorMode.value === 'dark')
 const nodes = ref<any[]>([])
 const edges = ref<any[]>([])
+const showEnvVarsModal = ref(false)
+const isExecutionPanelExpanded = ref(false)
 
 // Initialize history with empty arrays
 const history = ref({
@@ -305,12 +304,6 @@ const saveToHistory = () => {
   history.value.past.push(history.value.current)
   history.value.current = currentState
   history.value.future = []
-  
-  console.log('Saved state to history:', {
-    pastLength: history.value.past.length,
-    currentNodes: currentState.nodes.length,
-    currentEdges: currentState.edges.length
-  })
 }
 
 // Initialize history with current state
@@ -327,16 +320,6 @@ const initHistory = () => {
 
 // Apply a state to the editor
 const applyState = (state: any) => {
-  console.log('Applying state:', {
-    nodes: state.nodes.length,
-    edges: state.edges.length
-  })
-  
-  // Clear existing nodes and edges
-  nodes.value = []
-  edges.value = []
-  
-  // Add new nodes and edges
   nodes.value = JSON.parse(JSON.stringify(state.nodes))
   edges.value = JSON.parse(JSON.stringify(state.edges))
 }
@@ -346,13 +329,8 @@ const undo = () => {
     const previous = history.value.past.pop()
     history.value.future.push(history.value.current)
     history.value.current = previous
-    
     applyState(previous)
     debugMessage.value = 'Undid last action'
-    console.log('Undo completed:', {
-      pastLength: history.value.past.length,
-      futureLength: history.value.future.length
-    })
   }
 }
 
@@ -361,13 +339,8 @@ const redo = () => {
     const next = history.value.future.pop()
     history.value.past.push(history.value.current)
     history.value.current = next
-    
     applyState(next)
     debugMessage.value = 'Redid last action'
-    console.log('Redo completed:', {
-      pastLength: history.value.past.length,
-      futureLength: history.value.future.length
-    })
   }
 }
 
@@ -375,16 +348,13 @@ const redo = () => {
 const handleKeyDown = (event: KeyboardEvent) => {
   if ((event.metaKey || event.ctrlKey) && event.key === 'z') {
     if (event.shiftKey) {
-      // Cmd/Ctrl + Shift + Z = Redo
       event.preventDefault()
       redo()
     } else {
-      // Cmd/Ctrl + Z = Undo
       event.preventDefault()
       undo()
     }
   } else if ((event.metaKey || event.ctrlKey) && event.key === 'y') {
-    // Cmd/Ctrl + Y = Redo (alternative)
     event.preventDefault()
     redo()
   }
@@ -398,9 +368,9 @@ const workflowData = ref({
       description: "Workflow created in editor",
       version: 1,
       status: "draft",
-      created_by: "user-123", // TODO: Replace with actual user ID
+      created_by: "user-123",
       created_at: new Date().toISOString(),
-      updated_by: "user-123", // TODO: Replace with actual user ID
+      updated_by: "user-123",
       updated_at: new Date().toISOString(),
       tags: []
     },
@@ -439,7 +409,6 @@ const defaultEdgeOptions = {
 }
 
 const updateWorkflowData = () => {
-  console.log('Updating workflow data...')
   workflowData.value = {
     workflow: {
       ...workflowData.value.workflow,
@@ -463,49 +432,37 @@ const updateWorkflowData = () => {
       }))
     }
   }
-  console.log('Updated workflow structure:', JSON.stringify(workflowData.value, null, 2))
+}
+
+const updateEnvironmentVariables = (variables: Record<string, string>) => {
+  workflowData.value.workflow.environment = variables
+  saveWorkflow()
 }
 
 const saveWorkflow = () => {
-  console.log('Saving workflow...')
   updateWorkflowData()
-  
-  // Save to localStorage with pretty formatting for debugging
   localStorage.setItem(
     `workflow-${workflowData.value.workflow.metadata.id}`, 
     JSON.stringify(workflowData.value, null, 2)
   )
-  
-  console.log('Workflow saved successfully:', {
-    id: workflowData.value.workflow.metadata.id,
-    name: workflowData.value.workflow.metadata.name,
-    nodesCount: workflowData.value.workflow.nodes.length,
-    edgesCount: workflowData.value.workflow.edges.length,
-    lastModified: workflowData.value.workflow.metadata.updated_at
-  })
-  
   debugMessage.value = 'Workflow saved successfully'
 }
 
 const loadWorkflow = () => {
-  console.log('Loading workflow...')
   const saved = localStorage.getItem(`workflow-${workflowData.value.workflow.metadata.id}`)
   if (saved) {
     const data = JSON.parse(saved)
-    // Handle different workflow data structures
     if (data.workflow) {
-      // Handle nested workflow structure
       workflowData.value = data
       nodes.value = data.workflow.nodes.map(node => ({
         ...node,
-        type: 'custom', // Ensure correct node type
+        type: 'custom',
         dragHandle: '.custom-node-header',
         connectable: true,
         selectable: true,
       }))
       edges.value = data.workflow.edges || []
     } else {
-      // Handle flat workflow structure
       workflowData.value = {
         workflow: {
           metadata: {
@@ -520,30 +477,19 @@ const loadWorkflow = () => {
       }
       nodes.value = data.nodes.map(node => ({
         ...node,
-        type: 'custom', // Ensure correct node type
+        type: 'custom',
         dragHandle: '.custom-node-header',
         connectable: true,
         selectable: true,
       }))
       edges.value = data.edges || []
     }
-    console.log('Workflow loaded successfully:', {
-      id: workflowData.value.workflow.metadata.id,
-      name: workflowData.value.workflow.metadata.name,
-      nodesCount: nodes.value.length,
-      edgesCount: edges.value.length
-    })
-    console.log('Loaded nodes:', nodes.value)
-    console.log('Loaded edges:', edges.value)
     debugMessage.value = 'Workflow loaded successfully'
-  } else {
-    console.log('No saved workflow found, starting fresh')
   }
 }
 
 const onConnect = (params: any) => {
   saveToHistory()
-  console.log('Creating new edge connection:', params)
   const edge = {
     id: `edge-${Date.now()}`,
     source: params.source,
@@ -561,92 +507,41 @@ const onConnect = (params: any) => {
   }
   edges.value.push(edge)
   updateWorkflowData()
-  console.log('Edge created:', edge)
   debugMessage.value = 'Connected nodes'
 }
 
-// Handle node changes (position, deletion, etc.)
 const onNodesChange = (changes: any[]) => {
-
-  console.log('Node changes:', changes)
-
-  
-
   changes.forEach(change => {
-
     if (change.type === 'position' && change.dragging) {
-
-      // Update position immediately during drag
-
       const node = nodes.value.find(n => n.id === change.id)
-
       if (node && change.position) {
-
-        // Ensure position values are numbers and not undefined
-
         node.position = {
-
           x: Number(change.position.x) || node.position.x || 0,
-
           y: Number(change.position.y) || node.position.y || 0
-
         }
-
       }
-
-      return // Don't save to history during drag
-
+      return
     }
-
     
-
-    // Save to history for other changes
-
     saveToHistory()
-
     
-
-    // Apply the change
-
     if (change.type === 'remove') {
-
       nodes.value = nodes.value.filter(node => node.id !== change.id)
-
     } else if (change.type === 'position' && !change.dragging) {
-
       const node = nodes.value.find(n => n.id === change.id)
-
       if (node && change.position) {
-
-        // Ensure position values are numbers and not undefined
-
         node.position = {
-
           x: Number(change.position.x) || node.position.x || 0,
-
           y: Number(change.position.y) || node.position.y || 0
-
         }
-
       }
-
     }
-
   })
-
   
-
-  // Update workflow data after changes are applied
-
   updateWorkflowData()
-
 }
 
-
-
-// Handle edge changes
 const onEdgesChange = (changes: any[]) => {
-  console.log('Edge changes:', changes)
   saveToHistory()
   changes.forEach(change => {
     if (change.type === 'remove') {
@@ -655,7 +550,6 @@ const onEdgesChange = (changes: any[]) => {
   })
 }
 
-// Modify onDragStart to use the new component structure
 const onDragStart = (event: DragEvent, component: any) => {
   if (event.dataTransfer) {
     const componentData = {
@@ -682,25 +576,16 @@ const onDragOver = (event: DragEvent) => {
 
 const onDrop = (event: DragEvent) => {
   saveToHistory()
-  console.log('Handling component drop...')
   try {
     const data = JSON.parse(event.dataTransfer?.getData('application/vueflow') || '{}')
-  
-    // Get the wrapper bounds
     const wrapper = event.currentTarget as HTMLDivElement
-    if (!wrapper) {
-      console.error('No wrapper element found')
-      return
-    }
+    if (!wrapper) return
+    
     const bounds = wrapper.getBoundingClientRect()
-  
-    // Calculate position relative to the pane
     const position = {
       x: (event.clientX - bounds.left - (viewport.value?.x || 0)) / (viewport.value?.zoom || 1),
       y: (event.clientY - bounds.top - (viewport.value?.y || 0)) / (viewport.value?.zoom || 1)
     }
-
-    console.log('Calculated drop position:', position)
 
     const newNode = {
       id: `node-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
@@ -719,7 +604,6 @@ const onDrop = (event: DragEvent) => {
       targetPosition: Position.Left,
     }
 
-    console.log('Creating new node:', newNode)
     nodes.value.push(newNode)
     debugMessage.value = `Added ${data.name} component`
     updateWorkflowData()
@@ -730,20 +614,12 @@ const onDrop = (event: DragEvent) => {
 }
 
 // Watch for changes and update workflow data
-watch([nodes, edges], (newVal, oldVal) => {
-  // Only update if there are actual changes
-  if (JSON.stringify(newVal) === JSON.stringify(oldVal)) {
-    return
-  }
+watch([nodes, edges], () => {
   updateWorkflowData()
 }, { deep: true })
 
-// Load workflow data on mount
 onMounted(() => {
-  // Add keyboard shortcut listener
   window.addEventListener('keydown', handleKeyDown)
-
-  // Ensure we have a valid ID parameter
   if (!route.params.id) {
     router.push('/')
     return
@@ -752,7 +628,6 @@ onMounted(() => {
   initHistory()
 })
 
-// Clean up event listener
 onUnmounted(() => {
   window.removeEventListener('keydown', handleKeyDown)
 })
