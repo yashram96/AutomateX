@@ -16,10 +16,12 @@
 
     <!-- Header Bar -->
     <div 
-      class="flex items-center justify-between px-4 h-10 border-b border-gray-200 dark:border-gray-700 cursor-pointer"
-      @click="togglePanel"
+      class="flex items-center justify-between px-4 h-10 border-b border-gray-200 dark:border-gray-700"
     >
-      <div class="flex items-center space-x-2">
+      <div 
+        class="flex items-center space-x-2 flex-1 cursor-pointer"
+        @click="togglePanel"
+      >
         <ChevronUpIcon v-if="isExpanded" class="h-5 w-5 text-gray-500 dark:text-gray-400" />
         <ChevronDownIcon v-else class="h-5 w-5 text-gray-500 dark:text-gray-400" />
         <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300">Execution Logs</h3>
@@ -43,6 +45,7 @@
           <!-- Search Input -->
           <div class="relative">
             <input
+              @click.stop
               type="text"
               v-model="searchQuery"
               placeholder="Search logs..."
@@ -53,6 +56,7 @@
           
           <!-- Severity Filter -->
           <select
+            @click.stop
             v-model="severityFilter"
             class="text-sm rounded-md border border-gray-300 dark:border-gray-600 dark:bg-gray-700"
           >
@@ -64,7 +68,7 @@
 
           <!-- Auto-scroll Toggle -->
           <button
-            @click="autoScroll = !autoScroll"
+            @click.stop="autoScroll = !autoScroll"
             :class="[
               'px-2 py-1 text-xs rounded-md',
               autoScroll
@@ -77,7 +81,7 @@
 
           <!-- Clear Logs -->
           <button
-            @click="clearLogs"
+            @click.stop="clearLogs"
             class="p-1 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
           >
             <TrashIcon class="h-4 w-4" />
@@ -94,7 +98,7 @@
           <button
             v-for="tab in tabs"
             :key="tab.id"
-            @click="currentTab = tab.id"
+            @click.stop="currentTab = tab.id"
             :class="[
               'py-2 text-sm font-medium border-b-2 whitespace-nowrap',
               currentTab === tab.id
