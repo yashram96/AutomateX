@@ -173,14 +173,7 @@ const navigation = [
   {
     name: 'Settings & Support',
     items: [
-      {
-        name: 'Settings',
-        icon: Cog6ToothIcon,
-        children: [
-          { name: 'Account Settings', href: '/settings/account' },
-          { name: 'System Preferences', href: '/settings/system' },
-        ],
-      },
+      { name: 'Settings', href: '/settings/account', icon: Cog6ToothIcon },
       {
         name: 'Support',
         icon: SupportIcon,

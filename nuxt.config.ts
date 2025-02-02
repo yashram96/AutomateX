@@ -11,5 +11,16 @@ export default defineNuxtConfig({
   ],
   colorMode: {
     classSuffix: ''
-  }
+  },
+  vite: {
+    server: {
+      watch: {
+        usePolling: true, // Enables polling mode
+        interval: 10,    // Check every 100ms
+      },
+      hmr: {
+        port: 24678, // Default Vite HMR port
+      },
+    },
+  },
 })

@@ -130,14 +130,7 @@
         <div class="mt-6 flow-root">
           <div class="-my-6 divide-y divide-gray-500/10">
             <div class="space-y-2 py-6">
-              <NuxtLink
-                v-for="item in navigation"
-                :key="item.name"
-                :to="item.href"
-                class="-mx-3 block rounded-lg px-3 py-2 text-base font-semibold leading-7 text-gray-900 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800"
-              >
-                {{ item.name }}
-              </NuxtLink>
+              query
             </div>
             <div class="py-6">
               <div class="flex items-center gap-x-4 mb-4">
@@ -194,6 +187,7 @@ const handleLogout = () => {
   router.push('/')
 }
 
+
 const navigation = [
   { name: 'Features', href: '#features' },
   { name: 'Solutions', href: '#solutions' },
@@ -201,10 +195,24 @@ const navigation = [
   { name: 'Resources', href: '#resources' },
 ]
 
+
 const userNavigation = [
-  { name: 'View Profile', href: '#' },
-  { name: 'Account Settings', href: '#' },
-  { name: 'Notifications', href: '#' },
-  { name: 'Billing Information', href: '#' },
+  { name: 'View Profile', href: '/settings/account', section: 'profile' },
+  { name: 'Account Settings', href: '/settings/account', section: 'security' },
+  { name: 'Notifications', href: '/settings/account', section: 'notifications' },
+  { name: 'Billing Information', href: '/settings/account', section: 'billing' },
+  { name: 'Logout', href: 'javascript:void(0)' },
 ]
+
+const handleNavigation = (item: any) => {
+  if (item.name === 'Logout') {
+    handleLogout()
+    return
+  
+  router.push({
+    path: item.href,
+    query: item.section ? { section: item.section } : undefined
+  })
+}
+}
 </script>

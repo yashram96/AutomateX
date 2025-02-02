@@ -78,11 +78,11 @@
                 <MenuItem v-for="item in userNavigation" :key="item.name" v-slot="{ active }">
                   <a
                     :href="item.href"
+                    @click.prevent="handleNavigation(item)"
                     :class="[
                       active ? 'bg-gray-100 dark:bg-gray-700' : '',
                       'block px-4 py-2 text-sm text-gray-700 dark:text-gray-300',
                     ]"
-                    @click="item.name === 'Logout' ? handleLogout() : null"
                   >
                     {{ item.name }}
                   </a>
@@ -112,24 +112,36 @@ import { useAuth } from '~/composables/useAuth'
 const { clearUser } = useAuth()
 const router = useRouter()
 
+const userNavigation = [
+  { name: 'View Profile', href: '/settings/account', section: 'profile' },
+  { name: 'Account Settings', href: '/settings/account', section: 'security' },
+  { name: 'Notifications', href: '/settings/account', section: 'notifications' },
+  { name: 'Billing Information', href: '/settings/account', section: 'billing' },
+  { name: 'Logout', href: 'javascript:void(0)' },
+]
+
+const handleNavigation = (item: any) => {
+  if (item.name === 'Logout') {
+    handleLogout()
+    return
+  }
+  
+  router.push({
+    path: item.href,
+    query: item.section ? { section: item.section } : undefined
+  })
+}
+
 const handleLogout = () => {
   clearUser()
   router.push('/')
 }
 
 const navigation = [
-  { name: 'Dashboard', href: '/' },
+  { name: 'Dashboard', href: '/dashboard' },
   { name: 'Templates', href: '/templates' },
-  { name: 'Integrations', href: '/integrations' },
+  { name: 'Integrations', href: '/settings' },
   { name: 'Activity Logs', href: '/logs' },
-]
-
-const userNavigation = [
-  { name: 'View Profile', href: '#' },
-  { name: 'Account Settings', href: '#' },
-  { name: 'Notifications', href: '#' },
-  { name: 'Billing Information', href: '#' },
-  { name: 'Logout', href: 'javascript:void(0)' },
 ]
 
 defineEmits(['toggle-sidebar'])
