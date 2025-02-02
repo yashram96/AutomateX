@@ -53,10 +53,7 @@
           </nav>
 
           <!-- Notifications -->
-          <button class="relative p-2 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white">
-            <BellIcon class="h-6 w-6" />
-            <span class="absolute top-0 right-0 block h-2 w-2 rounded-full bg-red-400 ring-2 ring-white dark:ring-gray-800" />
-          </button>
+          <NotificationsDropdown />
 
           <!-- Profile Dropdown -->
           <Menu as="div" class="relative">
@@ -107,6 +104,7 @@ import {
   Bars3Icon,
   MagnifyingGlassIcon,
 } from '@heroicons/vue/24/outline'
+import NotificationsDropdown from '~/components/NotificationsDropdown.vue'
 import { useAuth } from '~/composables/useAuth'
 
 const { clearUser } = useAuth()
