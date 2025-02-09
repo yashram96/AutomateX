@@ -7,7 +7,11 @@ export default defineNuxtConfig({
     '@nuxtjs/color-mode'
   ],
   css: [
-    '~/assets/css/workflow-editor.css'
+    '~/assets/css/workflow-editor.css',
+    '@vue-flow/core/dist/style.css',
+    '@vue-flow/core/dist/theme-default.css',
+    '@vue-flow/controls/dist/style.css',
+    '@vue-flow/minimap/dist/style.css'
   ],
   colorMode: {
     classSuffix: ''

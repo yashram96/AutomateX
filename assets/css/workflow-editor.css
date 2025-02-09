@@ -103,3 +103,55 @@
 .vue-flow__handle-invalid {
   @apply bg-red-500;
 }
+
+/* Vue Flow Overrides */
+.vue-flow {
+  @apply bg-gray-50 dark:bg-gray-900;
+}
+
+.vue-flow__minimap {
+  @apply bg-white dark:bg-gray-800;
+}
+
+.vue-flow__controls {
+  @apply bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700;
+}
+
+.vue-flow__controls button {
+  @apply bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300;
+}
+
+.vue-flow__controls button:hover {
+  @apply bg-gray-50 dark:bg-gray-700;
+}
+
+.vue-flow__node {
+  @apply select-none;
+}
+
+.vue-flow__edge {
+  @apply !stroke-primary-500;
+}
+
+.vue-flow__edge.selected {
+  @apply !stroke-primary-600;
+}
+
+.vue-flow__edge:hover {
+  @apply !stroke-primary-600;
+}
+
+.vue-flow__edge-path {
+  @apply stroke-2;
+}
+
+.vue-flow__edge.animated path {
+  stroke-dasharray: 5;
+  animation: dashdraw 1s linear infinite;
+}
+
+@keyframes dashdraw {
+  from {
+    stroke-dashoffset: 10;
+  }
+}

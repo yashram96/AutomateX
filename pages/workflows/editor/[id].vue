@@ -83,6 +83,10 @@
             v-model="nodes"
             :edges="edges"
             :nodesDraggable="true"
+            :nodesConnectable="true"
+            :elementsSelectable="true"
+            :snapToGrid="true"
+            :snapGrid="[20, 20]"
             :default-edge-options="defaultEdgeOptions"
             @nodesDragStop="updateWorkflowData"
             @nodesChange="onNodesChange"
@@ -95,12 +99,15 @@
             @drop="onDrop"
             @dragover="onDragOver"
             :fit-view-on-init="false"
-            :snap-to-grid="true"
             :delete-key-code="'Delete'"
             :multi-selection-key-code="'Control'"
             :selection-key-code="'Shift'"
             :elevate-nodes-on-select="true"
             :auto-pan-on-node-drag="true"
+            :panOnDrag="true"
+            :panOnScroll="true"
+            :zoomOnScroll="true"
+            :preventScrolling="false"
           >
             <template #node-custom="nodeProps">
               <CustomNode v-bind="nodeProps" />
@@ -403,9 +410,11 @@ const workflowData = ref({
 
 const defaultEdgeOptions = {
   type: 'smoothstep',
-  style: { stroke: '#0077ff', strokeWidth: 2 },
+  style: { stroke: '#6366f1', strokeWidth: 2 },
   animated: true,
   markerEnd: { type: 'arrow' },
+  selectable: true,
+  updatable: true
 }
 
 const updateWorkflowData = () => {
